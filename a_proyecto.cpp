@@ -24,6 +24,7 @@ struct Boton {
 
 BotonAccion manejarBoton(Boton& boton, sf::Vector2f mouse_position, BotonAccion accion);
 bool randRepetido(int rand[], int cantidad, int valor);
+int ajustarAs(int total, int cartas[], int valorCartas[], int cantidad);
 
 // main del programa
 int main()
@@ -32,6 +33,9 @@ int main()
     srand(time(0));
     int randJugador[5];
     int randMaquina[5];
+    int valorCartas[53];
+    int totalJugador; 
+    int totalMaquina;
     // creamos la ventana
     sf::RenderWindow window(sf::VideoMode({900, 600}), "Title");
     // sacamos el tamaño de la ventana para acomodar botones imagenes, etc.
@@ -43,6 +47,31 @@ int main()
     sf::Text text(font);
     text.setCharacterSize(50);
     text.setLetterSpacing(1.5f);
+
+    // Cargamos imagen de ganaste o perdiste 
+    sf::Texture ganaste("Cartas/ganaste.png");
+    ganaste.setSmooth(true);
+    sf::Sprite gan(ganaste);
+    sf::FloatRect boundsganaste = gan.getLocalBounds();
+    gan.setOrigin(boundsganaste.size.componentWiseMul({0.5f, 0.9f}));
+    gan.setPosition({400.f, 300.f});
+    gan.setScale({0.4f, 0.4f});
+
+    sf::Texture perdiste("Cartas/perdiste.png");
+    perdiste.setSmooth(true);
+    sf::Sprite per(perdiste);
+    sf::FloatRect boundsperdiste = per.getLocalBounds();
+    per.setOrigin(boundsperdiste.size.componentWiseMul({0.5f, 0.9f}));
+    per.setPosition({400.f, 300.f});
+    per.setScale({0.4f, 0.4f});
+
+    sf::Texture empate("Cartas/empate.png");
+    empate.setSmooth(true);
+    sf::Sprite emp(empate);
+    sf::FloatRect boundsempate = emp.getLocalBounds();
+    emp.setOrigin(boundsempate.size.componentWiseMul({0.5f, 0.9f}));
+    emp.setPosition({400.f, 300.f});
+    emp.setScale({0.4f, 0.4f});
 
     // Vectores para almacenar las texturas y los sprites de las cartas
     std::vector<sf::Texture> cardTextures;
@@ -68,6 +97,19 @@ int main()
         cardSprites.push_back(sprite);//Guarda el sprite en el vector
     }
 
+    
+    //Aqui se le asigna los valores de las cartas para poder hacer la logica de juego 
+    for (int i = 1; i <= 52; ++i) {
+        int pos = (i - 1) % 13; 
+        if (pos <= 8) {
+            valorCartas[i] = pos + 2; 
+        } else if (pos <= 11) {
+            valorCartas[i] = 10;      
+        } else {
+            valorCartas[i] = 11;
+        }
+    }
+    
     //ciclo para las cartas randmon del jugador 
     int i=0;
     while (i < 5) {
@@ -77,7 +119,6 @@ int main()
             i++;
         }
     }
-
     //ciclo para las cartas random de la maquina 
     i = 0;
     while (i < 5) {
@@ -94,18 +135,18 @@ int main()
 
     //Cartas aleatorias del jugador 
     cardSprites[randJugador[0]].setPosition({tamanioVentana.x * .45f, tamanioVentana.y * .65f});
-    cardSprites[randJugador[1]].setPosition({tamanioVentana.x * .55f, tamanioVentana.y * .65f});
-    cardSprites[randJugador[2]].setPosition({tamanioVentana.x * .60f, tamanioVentana.y * .65f});
-    cardSprites[randJugador[3]].setPosition({tamanioVentana.x * .70f, tamanioVentana.y * .65f});
-    cardSprites[randJugador[4]].setPosition({tamanioVentana.x * .80f, tamanioVentana.y * .65f});
+    cardSprites[randJugador[1]].setPosition({tamanioVentana.x * .58f, tamanioVentana.y * .65f});
+    cardSprites[randJugador[2]].setPosition({tamanioVentana.x * .66f, tamanioVentana.y * .65f});
+    cardSprites[randJugador[3]].setPosition({tamanioVentana.x * .79f, tamanioVentana.y * .65f});
+    cardSprites[randJugador[4]].setPosition({tamanioVentana.x * .92f, tamanioVentana.y * .65f});
 
     //Cartas aleatorias de la maquina 
     cardSprites[randMaquina[0]].setPosition({tamanioVentana.x * .45f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[1]].setPosition({tamanioVentana.x * .55f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[2]].setPosition({tamanioVentana.x * .60f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[3]].setPosition({tamanioVentana.x * .70f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[4]].setPosition({tamanioVentana.x * .80f, tamanioVentana.y * .15f});
-    cardSprites[53].setPosition({tamanioVentana.x * .55f, tamanioVentana.y * .15f});
+    cardSprites[randMaquina[1]].setPosition({tamanioVentana.x * .58f, tamanioVentana.y * .15f});
+    cardSprites[randMaquina[2]].setPosition({tamanioVentana.x * .66f, tamanioVentana.y * .15f});
+    cardSprites[randMaquina[3]].setPosition({tamanioVentana.x * .79f, tamanioVentana.y * .15f});
+    cardSprites[randMaquina[4]].setPosition({tamanioVentana.x * .92f, tamanioVentana.y * .15f});
+    cardSprites[53].setPosition({tamanioVentana.x * .58f, tamanioVentana.y * .15f});
 
     // creacion de botones 
     Boton botonPedir;
@@ -126,12 +167,16 @@ int main()
     bool mostrarImagen3 = false;
     bool mostrarImagen4 = false;
     bool mostrarImagen5 = false;
+    bool mostrarGanaste = false;
+    bool mostrarPerdiste = false;
+    bool mostrarEmpate = false;
     int cont = 0;
     EstadoJuego estadoActual = MENU;
     sf::Clock relojCartasMaquina;
-    int cartasMaquinaMostradas = 0;
     bool mazoMaquina = false;
-
+    int cartasMaquinaMostradas = 0;
+    int contMaquinaAnimacion = 2; 
+    
     // window loop
     while (window.isOpen())
     {
@@ -159,6 +204,13 @@ int main()
         if (accion3 == INICIAR)
         {
             estadoActual = PARTIDA;
+            totalJugador = valorCartas[randJugador[0]] + valorCartas[randJugador[1]];
+            std::cout << "Valor : " << totalJugador << std::endl;
+            totalMaquina = valorCartas[randMaquina[0]] + valorCartas[randMaquina[1]];
+            std::cout << "Valor Maquina: " << totalMaquina << std::endl;
+            if (totalJugador == 21 ){
+                mostrarGanaste = true;
+            }
         }
 
         window.clear(sf::Color(64, 64, 64));
@@ -192,8 +244,9 @@ int main()
         window.display();
 
     }
-    else if (estadoActual = PARTIDA)
+    else if (estadoActual == PARTIDA)
     {
+
         // posicion del mouse 
         auto mouse_position = sf::Vector2f(sf::Mouse::getPosition(window));
 
@@ -206,30 +259,88 @@ int main()
         {
             if (cont < 3)
             {
-              cardSprites[randJugador[0]].move({tamanioVentana.x * -.05f, 0.f});
-              cardSprites[randJugador[1]].move({tamanioVentana.x * -.05f, 0.f});
-              if (mostrarImagen3==true)
+                cardSprites[randJugador[0]].move({tamanioVentana.x * -.05f, 0.f});
+                cardSprites[randJugador[1]].move({tamanioVentana.x * -.05f, 0.f});
+              if (mostrarImagen3==true )
               {
                   cardSprites[randJugador[2]].move({tamanioVentana.x * -.05f, 0.f});
                   mostrarImagen4 = true;
               } 
-              if (mostrarImagen4 == true && mostrarImagen3 == true){
-                cardSprites[randJugador[3]].move({tamanioVentana.x * -.05f, 0.f});
+              if (mostrarImagen4 == true ){
+                  cardSprites[randJugador[3]].move({tamanioVentana.x * -.05f, 0.f});
                   mostrarImagen5 = true;
               }
-              if (mostrarImagen5 == true && mostrarImagen4 == true && mostrarImagen3 == true){
-                cardSprites[randJugador[4]].move({tamanioVentana.x * -.05f, 0.f});
+              if (mostrarImagen5 == true ){
+                 cardSprites[randJugador[4]].move({tamanioVentana.x * -.05f, 0.f});
               }
 
               mostrarImagen3 = true;
+             
+                // Aqui desarrolamos la logica del juego para saber si el jugador gano o perdio
+                 int cartasEnJuego = 2 + cont + 1;
+                 totalJugador = ajustarAs(0, randJugador, valorCartas, cartasEnJuego);
+                 std::cout << "Valor total jugador: " << totalJugador << std::endl;
+                 
+            if (totalJugador > 21) 
+            {
+                relojCartasMaquina.restart(); 
+               cartasMaquinaMostradas = 2;
+               contMaquinaAnimacion = 2; 
+               mazoMaquina = true;
+               totalMaquina = ajustarAs(totalMaquina, randMaquina, valorCartas, cartasMaquinaMostradas);
+
+               //Logica de la maquina para saber quien gana 
+                while (totalMaquina < 17 && cartasMaquinaMostradas < 5) {
+                    totalMaquina += valorCartas[randMaquina[cartasMaquinaMostradas]];
+                    cartasMaquinaMostradas++;
+                    totalMaquina = ajustarAs(totalMaquina, randMaquina, valorCartas, cartasMaquinaMostradas);
+                }
+
+                std::cout << "Valor total maquina: " << totalMaquina << std::endl;
+                std::cout << "Maquina mostradas " << cartasMaquinaMostradas << std::endl;
+
+                // Verificar ganador
+                if (totalMaquina > 21){
+                    mostrarEmpate = true;
+                }else {
+                    mostrarPerdiste = true;
+                }        
+            }
+                if (cont == 2 && totalJugador <= 21) {
+                    mostrarGanaste = true;
+                }
+
               cont ++;
             }
         }        
         else if (accion2 == PLANTARSE)
         {
-               relojCartasMaquina.restart(); // Reinicia el tiempo del cronometro creado con Clock
-               cartasMaquinaMostradas = 0;
+               relojCartasMaquina.restart(); 
+               cartasMaquinaMostradas = 2;
+               contMaquinaAnimacion = 2; 
                mazoMaquina = true;
+               totalMaquina = ajustarAs(totalMaquina, randMaquina, valorCartas, cartasMaquinaMostradas);
+
+               //Logica de la maquina para saber quien gana 
+                while (totalMaquina < 17 && cartasMaquinaMostradas < 5) {
+                    totalMaquina += valorCartas[randMaquina[cartasMaquinaMostradas]];
+                    cartasMaquinaMostradas++;
+                    totalMaquina = ajustarAs(totalMaquina, randMaquina, valorCartas, cartasMaquinaMostradas);
+                }
+
+                std::cout << "Valor total maquina: " << totalMaquina << std::endl;
+                std::cout << "Maquina mostradas " << cartasMaquinaMostradas << std::endl;
+
+                // Verificar ganador
+                if (totalMaquina > 21 && totalJugador > 21){
+                    mostrarEmpate = true;
+                }else if (totalMaquina > 21) {
+                    mostrarGanaste = true;
+                } else if (totalMaquina >= totalJugador) {
+                    mostrarPerdiste = true;
+                } else {
+                    mostrarGanaste = true;
+                }            
 
         }
 
@@ -251,31 +362,43 @@ int main()
             window.draw(cardSprites[randJugador[4]]);
         }
 
-        window.draw(cardSprites[randMaquina[0]]);
-        window.draw(cardSprites[53]);
+        if (!mazoMaquina) {
+            window.draw(cardSprites[randMaquina[0]]);
+            window.draw(cardSprites[53]);
+        }
         
+        //logica del juego de la maquina
         if (mazoMaquina) {
             sf::Time tiempo = relojCartasMaquina.getElapsedTime();
-        
-            if (cartasMaquinaMostradas < 5 && tiempo.asSeconds() > 1.5f * cartasMaquinaMostradas) {
-                if (cartasMaquinaMostradas >= 2)
-                {
-                    cardSprites[randMaquina[0]].move({tamanioVentana.x * -.05f, 0.f});
-                    cardSprites[randMaquina[1]].move({tamanioVentana.x * -.05f, 0.f});
-                    cardSprites[53].move({tamanioVentana.x * -.05f, 0.f});
+
+            if (contMaquinaAnimacion < cartasMaquinaMostradas && tiempo.asSeconds() > 1.5f * contMaquinaAnimacion) {
+                int index = contMaquinaAnimacion;
+                if (index == 2){
+                    cardSprites[randMaquina[0]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[randMaquina[1]].move({tamanioVentana.x * -0.05f, 0.f});
                 }
-                if (cartasMaquinaMostradas >=3)
-                {
-                   cardSprites[randMaquina[2]].move({tamanioVentana.x * -.05f, 0.f});
-                   cardSprites[randMaquina[3]].move({tamanioVentana.x * -.05f, 0.f});
-                   cardSprites[randMaquina[4]].move({tamanioVentana.x * -.05f, 0.f});
+                if (index > 2) {
+                    cardSprites[randMaquina[0]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[randMaquina[1]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[randMaquina[2]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[randMaquina[3]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[randMaquina[4]].move({tamanioVentana.x * -0.05f, 0.f});
                 }
-                cartasMaquinaMostradas++;
+                contMaquinaAnimacion++;
             }
         
-            for (int i = 0; i < cartasMaquinaMostradas; ++i) {
+             for (int i = 0; i < contMaquinaAnimacion; ++i) {
                 window.draw(cardSprites[randMaquina[i]]);
             }
+        }
+        if (mostrarGanaste){
+            window.draw(gan);
+        }
+        if (mostrarPerdiste){
+            window.draw(per);
+        }
+        if (mostrarEmpate){
+                window.draw(emp);
         }
 
         // display
@@ -349,4 +472,24 @@ bool randRepetido(int rand[], int cantidad, int valor){
                }
         }
     return false;
+}
+
+int ajustarAs(int total,int cartas[],int valorCartas[], int cantidad) {
+    int asesSinAjustar = 0;
+    int tempTotal = 0;
+
+    for (int i = 0; i < cantidad; ++i) {
+        int valor = valorCartas[cartas[i]];
+        tempTotal += valor;
+        if (valor == 11) {
+            asesSinAjustar++;
+        }
+    }
+
+    while (tempTotal > 21 && asesSinAjustar > 0) {
+        tempTotal -= 10;
+        asesSinAjustar--;
+    }
+
+    return tempTotal;
 }
