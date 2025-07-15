@@ -577,7 +577,7 @@ BotonAccion manejarBoton(Boton& boton, sf::Vector2f mouse_position, BotonAccion 
 
          // cuando se presiona el mouse 
          if (boton.isMousePressed and boton.isPressedInside)
-             boton.shape.setFillColor(sf::Color(0, 170, 255));
+             boton.shape.setFillColor(sf::Color(0, 171, 255));
 
          // estado
          boton.isOver = true;
@@ -587,13 +587,13 @@ BotonAccion manejarBoton(Boton& boton, sf::Vector2f mouse_position, BotonAccion 
         //cambiamos color a los botones 
         switch (boton.tipo) {
             case REINICIAR:
-                boton.shape.setFillColor(sf::Color(119, 252, 165)); 
+                boton.shape.setFillColor(sf::Color(118, 252, 165)); 
                 break;
             case SALIR:
-                boton.shape.setFillColor(sf::Color(205, 92, 92));  
+                boton.shape.setFillColor(sf::Color(204, 92, 92));  
                 break;
             case INICIAR:
-                boton.shape.setFillColor(sf::Color(233, 150, 122));  
+                boton.shape.setFillColor(sf::Color(232, 150, 122));  
                 break;
             default:
                boton.shape.setFillColor(sf::Color::White); 
