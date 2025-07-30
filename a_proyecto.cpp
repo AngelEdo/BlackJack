@@ -25,15 +25,33 @@ struct Boton {
     BotonAccion tipo = NINGUNA;
 };
 
-BotonAccion manejarBoton(Boton& boton, sf::Vector2f mouse_position, BotonAccion accion);
-bool randRepetido(int rand[], int cantidad, int valor);
-int ajustarAs(int total, int cartas[], int valorCartas[], int cantidad);
-void reiniciarJuego(int randJugador[], int randMaquina[],int valorCartas[], sf::Sprite cardSprites[],sf::Vector2u tamanioVentana,int& totalJugador, int& totalMaquina);
+struct Imagen {
+    sf::Texture texture;
+    sf::Sprite sprite;
+    Imagen() : texture(), sprite(texture) {}
+};
 
-// main del programa
+struct BotonTexto {
+    Boton boton;
+    sf::Text texto;
+    BotonTexto(const sf::Font& fuente, const std::string& cadena, unsigned int tam)
+        : texto(fuente, cadena, tam) {}
+};
+
+  //Fnciones del main para la logica 
+  BotonAccion manejarBoton(Boton& boton, sf::Vector2f mouse_position, BotonAccion accion);
+  bool randRepetido(int rand[], int cantidad, int valor);
+  int ajustarAs(int total, int cartas[], int valorCartas[], int cantidad);
+  void reiniciarJuego(int randJugador[], int randMaquina[],int valorCartas[], std::vector<sf::Sprite>& sprites,sf::Vector2u tamanioVentana,int& totalJugador, int& totalMaquina);
+  Imagen cargarImagen(const std::string& ruta, sf::Vector2f posicion, sf::Vector2f escala);
+  void cartasRandom(int* destino, int cantidad, int* otros = nullptr, int otrosTam = 0);
+  void posicionarCartas(std::vector<sf::Sprite>& sprites, const int* indices, int cantidad, float y, const std::vector<float>& xMultiplicadores, const sf::Vector2u& tamanioVentana);
+  Boton crearBoton(sf::Vector2f size, sf::Vector2f position, BotonAccion tipo);
+  BotonTexto crearBotonConTexto(sf::Vector2f size, sf::Vector2f position, BotonAccion tipo, const sf::Font& fuente, const std::string& textoStr, unsigned int tam, sf::Color colorTexto);
+
+ // main del programa
 int main()
 {
-    //semilla para numeros aleatorios 
     srand(time(0));
     int randJugador[5];
     int randMaquina[5];
@@ -41,45 +59,16 @@ int main()
     int totalJugador; 
     int totalMaquina;
     // creamos la ventana
-    sf::RenderWindow window(sf::VideoMode({900, 600}), "Black jack", sf::Style::Titlebar | sf::Style::Close);
-    // sacamos el tamaño de la ventana para acomodar botones imagenes, etc.
-    sf::Vector2u tamanioVentana = window.getSize();
+    sf::RenderWindow window(sf::VideoMode({900, 600}), "Black jack");
 
-    // string
+    sf::Vector2u tamanioVentana = window.getSize();
     sf::Font font("C:/Windows/Fonts/arial.ttf");
 
-    sf::Texture portada("Cartas/portada.png");
-    portada.setSmooth(true);
-    sf::Sprite por(portada);
-    sf::FloatRect boundsportada = por.getLocalBounds();
-    por.setOrigin(boundsportada.size.componentWiseMul({0.5f, 0.5f}));
-    por.setPosition({450.f, 300.f});
-    por.setScale({1.0f, 1.0f});
-
-    // Cargamos imagen de ganaste o perdiste 
-    sf::Texture ganaste("Cartas/ganaste.png");
-    ganaste.setSmooth(true);
-    sf::Sprite gan(ganaste);
-    sf::FloatRect boundsganaste = gan.getLocalBounds();
-    gan.setOrigin(boundsganaste.size.componentWiseMul({0.5f, 0.5f}));
-    gan.setPosition({450.f, 300.f});
-    gan.setScale({1.0f, 1.0f});
-
-    sf::Texture perdiste("Cartas/perdiste.png");
-    perdiste.setSmooth(true);
-    sf::Sprite per(perdiste);
-    sf::FloatRect boundsperdiste = per.getLocalBounds();
-    per.setOrigin(boundsperdiste.size.componentWiseMul({0.5f, 0.5f}));
-    per.setPosition({450.f, 300.f});
-    per.setScale({1.0f, 1.0f});
-
-    sf::Texture empate("Cartas/empate.png");
-    empate.setSmooth(true);
-    sf::Sprite emp(empate);
-    sf::FloatRect boundsempate = emp.getLocalBounds();
-    emp.setOrigin(boundsempate.size.componentWiseMul({0.5f, 0.5f}));
-    emp.setPosition({450.f, 300.f});
-    emp.setScale({1.0f, 1.0f});
+    //funciones para cargar imagenes 
+    Imagen portada = cargarImagen("Cartas/portada.png", {450.f, 300.f}, {1.0f, 1.0f});
+    Imagen ganaste = cargarImagen("Cartas/ganaste.png", {450.f, 300.f}, {1.0f, 1.0f});
+    Imagen perdiste = cargarImagen("Cartas/perdiste.png", {450.f, 300.f}, {1.0f, 1.0f});
+    Imagen empate = cargarImagen("Cartas/empate.png", {450.f, 300.f}, {1.0f, 1.0f});
 
     // Vectores para almacenar las texturas y los sprites de las cartas
     std::vector<sf::Texture> cardTextures;
@@ -100,12 +89,11 @@ int main()
     for (const auto& texture : cardTextures) {
         sf::Sprite sprite(texture);
         sf::FloatRect bounds = sprite.getLocalBounds();
-        sprite.setOrigin(bounds.size.componentWiseMul({0.5f, 0.5f}));//Centra el sprite
-        sprite.setScale({0.4f, 0.4f});//Tamaño de las imagenes
-        cardSprites.push_back(sprite);//Guarda el sprite en el vector
+        sprite.setOrigin(bounds.size.componentWiseMul({0.5f, 0.5f}));
+        sprite.setScale({0.4f, 0.4f});
+        cardSprites.push_back(sprite);
     }
 
-    
     //Aqui se le asigna los valores de las cartas para poder hacer la logica de juego 
     for (int i = 1; i <= 52; ++i) {
         int pos = (i - 1) % 13; 
@@ -119,113 +107,25 @@ int main()
     }
     
     //ciclo para las cartas randmon del jugador 
-    int i = 0;
-    while (i < 5) {
-        int num = 1 + rand() % 52;
-        if (!randRepetido(randJugador, i, num)) {
-            randJugador[i] = num;
-            i++;
-        }
-    }
-    //ciclo para las cartas random de la maquina 
-    i = 0;
-    while (i < 5) {
-        int num = 1 + rand() % 52;
-        if (!randRepetido(randJugador, 5, num) && !randRepetido(randMaquina, i, num)) {
-            randMaquina[i] = num;
-            i++;
-        }
-    }
+    cartasRandom(randJugador, 5);
+    cartasRandom(randMaquina, 5, randJugador, 5);
     
-    // Aqui acomodamos la posicion de las imagenes en la pantalla 
-    // Carta que simula la baraja 
+    // Cartas volteadas 
     cardSprites[0].setPosition({tamanioVentana.x * .10f, tamanioVentana.y * .50f});
-
-    //Cartas aleatorias del jugador 
-    cardSprites[randJugador[0]].setPosition({tamanioVentana.x * .45f, tamanioVentana.y * .60f});
-    cardSprites[randJugador[1]].setPosition({tamanioVentana.x * .58f, tamanioVentana.y * .60f});
-    cardSprites[randJugador[2]].setPosition({tamanioVentana.x * .66f, tamanioVentana.y * .60f});
-    cardSprites[randJugador[3]].setPosition({tamanioVentana.x * .79f, tamanioVentana.y * .60f});
-    cardSprites[randJugador[4]].setPosition({tamanioVentana.x * .92f, tamanioVentana.y * .60f});
-
-    //Cartas aleatorias de la maquina 
-    cardSprites[randMaquina[0]].setPosition({tamanioVentana.x * .45f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[1]].setPosition({tamanioVentana.x * .58f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[2]].setPosition({tamanioVentana.x * .66f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[3]].setPosition({tamanioVentana.x * .79f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[4]].setPosition({tamanioVentana.x * .92f, tamanioVentana.y * .15f});
     cardSprites[53].setPosition({tamanioVentana.x * .58f, tamanioVentana.y * .15f});
 
-    // creacion de botones 
-    Boton botonPedir;
-    botonPedir.shape.setSize({200.f, 40.f});
-    botonPedir.shape.setPosition({tamanioVentana.x * .70f, tamanioVentana.y * .90f});
-    botonPedir.shape.setOrigin(botonPedir.shape.getSize() / 2.f);
-    botonPedir.tipo = PEDIR_CARTA;
+    // Multiplicadores horizontales para 5 cartas
+    std::vector<float> posicionesX = {0.45f, 0.58f, 0.66f, 0.79f, 0.92f};
+    // Posicionar cartas del jugador y maquina
+    posicionarCartas(cardSprites, randJugador, 5, 0.60f, posicionesX, tamanioVentana);
+    posicionarCartas(cardSprites, randMaquina, 5, 0.15f, posicionesX, tamanioVentana);
 
-    Boton botonPlantarse;
-    botonPlantarse.shape.setSize({180.f, 40.f});
-    botonPlantarse.shape.setPosition({tamanioVentana.x * .35f, tamanioVentana.y * .90f});
-    botonPlantarse.shape.setOrigin(botonPlantarse.shape.getSize() / 2.f);
-    botonPlantarse.tipo = PLANTARSE;
-
-    Boton iniciar;
-    iniciar.shape.setSize({210.f, 65.f});
-    iniciar.shape.setPosition({tamanioVentana.x * .50f, tamanioVentana.y * .89f});
-    iniciar.shape.setOrigin(iniciar.shape.getSize() / 2.f);
-    iniciar.tipo = INICIAR;
-
-    Boton terminarJuego;
-    terminarJuego.shape.setSize({120.f, 40.f});
-    terminarJuego.shape.setPosition({tamanioVentana.x * .1f, tamanioVentana.y * .05f});
-    terminarJuego.shape.setOrigin(terminarJuego.shape.getSize() / 2.f);
-    terminarJuego.tipo = SALIR;
-
-    Boton volveraJugar;
-    volveraJugar.shape.setSize({250.f, 60.f});
-    volveraJugar.shape.setPosition({tamanioVentana.x * .5f, tamanioVentana.y * .90f});
-    volveraJugar.shape.setOrigin(volveraJugar.shape.getSize() / 2.f);
-    volveraJugar.tipo = REINICIAR;
-
-    sf::Text in(font);
-    in.setCharacterSize(40);
-    in.setString("INICIAR");
-    sf::FloatRect boundsin = in.getLocalBounds();
-    in.setOrigin({boundsin.position.x + boundsin.size.x/2, in.getCharacterSize() * 0.75f});
-    in.setPosition(iniciar.shape.getPosition());
-    in.setFillColor(sf::Color::White);
-
-    sf::Text pedi(font);
-    pedi.setCharacterSize(25);
-    pedi.setString("PEDIR CARTA");
-    sf::FloatRect boundspedi = pedi.getLocalBounds();
-    pedi.setOrigin({boundspedi.position.x + boundspedi.size.x/2, pedi.getCharacterSize() * 0.75f});
-    pedi.setPosition(botonPedir.shape.getPosition());
-    pedi.setFillColor(sf::Color::Black);
-
-    sf::Text plant(font);
-    plant.setCharacterSize(25);
-    plant.setString("PLANTARSE");
-    sf::FloatRect boundsplant = plant.getLocalBounds();
-    plant.setOrigin({boundsplant.position.x + boundsplant.size.x/2, plant.getCharacterSize() * 0.75f});
-    plant.setPosition(botonPlantarse.shape.getPosition());
-    plant.setFillColor(sf::Color::Black);
-    
-    sf::Text volver(font);
-    volver.setCharacterSize(25);
-    volver.setString("VOLVER A JUGAR");
-    sf::FloatRect boundsvolver = volver.getLocalBounds();
-    volver.setOrigin({boundsvolver.position.x + boundsvolver.size.x/2, volver.getCharacterSize() * 0.75f});
-    volver.setPosition(volveraJugar.shape.getPosition());
-    volver.setFillColor(sf::Color::Black);
-
-    sf::Text sali(font);
-    sali.setCharacterSize(25);
-    sali.setString("SALIR");
-    sf::FloatRect boundssali = sali.getLocalBounds();
-    sali.setOrigin({boundssali.position.x + boundssali.size.x/2, sali.getCharacterSize() * 0.75f});
-    sali.setPosition(terminarJuego.shape.getPosition());
-    sali.setFillColor(sf::Color::Black);
+    //Botones con texto 
+    BotonTexto botonIniciar = crearBotonConTexto({210.f, 65.f}, {tamanioVentana.x * .50f, tamanioVentana.y * .89f}, INICIAR, font, "INICIAR", 40, sf::Color::White);
+    BotonTexto botonPedir = crearBotonConTexto({200.f, 40.f}, {tamanioVentana.x * .70f, tamanioVentana.y * .90f}, PEDIR_CARTA, font, "PEDIR CARTA", 25, sf::Color::Black);
+    BotonTexto botonPlantarse = crearBotonConTexto({180.f, 40.f}, {tamanioVentana.x * .35f, tamanioVentana.y * .90f}, PLANTARSE, font, "PLANTARSE", 25, sf::Color::Black);
+    BotonTexto volveraJugar = crearBotonConTexto({250.f, 60.f}, {tamanioVentana.x * .5f, tamanioVentana.y * .90f}, REINICIAR, font,"VOLVER A JUGAR", 25, sf::Color::Black);
+    BotonTexto terminarJuego = crearBotonConTexto({120.f, 40.f}, {tamanioVentana.x * .1f, tamanioVentana.y * .05f}, SALIR, font, "SALIR", 25, sf::Color::Black);
 
     sf::Text llevas(font);
     llevas.setCharacterSize(25);
@@ -277,7 +177,7 @@ int main()
     if (estadoActual == MENU)
     {
         auto mouse_position = sf::Vector2f(sf::Mouse::getPosition(window));
-        BotonAccion accion3 = manejarBoton(iniciar, mouse_position, INICIAR);
+        BotonAccion accion3 = manejarBoton(botonIniciar.boton, mouse_position, INICIAR);
 
         if (accion3 == INICIAR)
         {
@@ -290,9 +190,9 @@ int main()
         }
 
         window.clear(sf::Color(64, 64, 64));
-        window.draw(por);
-        window.draw(iniciar.shape);
-        window.draw(in);
+        window.draw(portada.sprite);
+        window.draw(botonIniciar.boton.shape);
+        window.draw(botonIniciar.texto);
         window.display();
 
     }
@@ -308,12 +208,12 @@ int main()
          BotonAccion reiniciar = NINGUNA;
 
         if (botonesHabilitados) {
-            accion1 = manejarBoton(botonPedir, mouse_position, PEDIR_CARTA);
-            accion2 = manejarBoton(botonPlantarse, mouse_position, PLANTARSE);
+            accion1 = manejarBoton(botonPedir.boton, mouse_position, PEDIR_CARTA);
+            accion2 = manejarBoton(botonPlantarse.boton, mouse_position, PLANTARSE);
         }
         if (botHab) {
-            salir = manejarBoton(terminarJuego, mouse_position, SALIR);
-            reiniciar = manejarBoton(volveraJugar, mouse_position, REINICIAR);
+            salir = manejarBoton(terminarJuego.boton, mouse_position, SALIR);
+            reiniciar = manejarBoton(volveraJugar.boton, mouse_position, REINICIAR);
         }
         // Manejar botones
         
@@ -335,7 +235,7 @@ int main()
             relojCartasMaquina.restart();
             relojResultado.restart();
             
-            reiniciarJuego(randJugador, randMaquina, valorCartas, cardSprites.data(), tamanioVentana, totalJugador, totalMaquina);
+            reiniciarJuego(randJugador, randMaquina, valorCartas, cardSprites, tamanioVentana, totalJugador, totalMaquina);
             llevas.setString("Llevas: " + std::to_string(totalJugador) + " Puntos");
             maquinaLleva.setString("La maquina lleva: " + std::to_string(valorCartas[randMaquina[0]]) + " Puntos");
             
@@ -446,10 +346,10 @@ int main()
 
         window.clear(sf::Color(64, 64, 64));
         if (botonesHabilitados){
-          window.draw(botonPedir.shape);
-          window.draw(pedi);
-          window.draw(botonPlantarse.shape);
-          window.draw(plant);
+          window.draw(botonPedir.boton.shape);
+          window.draw(botonPedir.texto);
+          window.draw(botonPlantarse.boton.shape);
+          window.draw(botonPlantarse.texto);
         }
 
         // Llamamos a las cartas para ser dibujadas 
@@ -509,22 +409,22 @@ int main()
 
         if (mostrarResultado && relojResultado.getElapsedTime().asSeconds() > 5.0f) {
             if (mostrarGanaste){
-                window.draw(gan);
+                window.draw(ganaste.sprite);
             }
             if (mostrarPerdiste){
-                window.draw(per);
+                window.draw(perdiste.sprite);
             }
             if (mostrarEmpate){
-                window.draw(emp);
+                window.draw(empate.sprite);
             }
             botHab = true;
         }
 
         if (botHab){
-            window.draw(terminarJuego.shape);
-            window.draw(sali);
-            window.draw(volveraJugar.shape);
-            window.draw(volver);
+            window.draw(terminarJuego.boton.shape);
+            window.draw(terminarJuego.texto);
+            window.draw(volveraJugar.boton.shape);
+            window.draw(volveraJugar.texto);
           }
 
         if (estadoActual == PARTIDA && !botHab ){
@@ -539,6 +439,68 @@ int main()
 
   return 0;
 }
+
+Imagen cargarImagen(const std::string& ruta, sf::Vector2f posicion, sf::Vector2f escala) {
+    Imagen img;
+    if (!img.texture.loadFromFile(ruta)) {
+        std::cout << "Error cargando imagen: " << ruta << std::endl;
+    }
+    img.texture.setSmooth(true);
+    img.sprite = sf::Sprite(img.texture);
+    sf::FloatRect boundsimagen = img.sprite.getLocalBounds();
+    img.sprite.setOrigin(boundsimagen.size.componentWiseMul({0.5f, 0.5f}));
+    img.sprite.setPosition(posicion);
+    img.sprite.setScale(escala);
+    return img;
+}
+
+void cartasRandom(int* destino, int cantidad, int* otros, int otrosTam){
+    int i = 0;
+    while (i < cantidad) {
+        int num = 1 + rand() % 52;
+        bool repetidoEnDestino = randRepetido(destino, i, num);
+        bool repetidoEnOtros = otros && randRepetido(otros, otrosTam, num);
+
+        if (!repetidoEnDestino && !repetidoEnOtros) {
+            destino[i] = num;
+            i++;
+        }
+    }
+}
+
+void posicionarCartas(std::vector<sf::Sprite>& sprites, const int* indices, int cantidad, float y, const std::vector<float>& xMultiplicadores, const sf::Vector2u& tamanioVentana) {
+    for (int i = 0; i < cantidad; ++i) {
+        float x = tamanioVentana.x * xMultiplicadores[i];
+        float posY = tamanioVentana.y * y;
+        sprites[indices[i]].setPosition({x, posY});
+    }
+}
+
+Boton crearBoton(sf::Vector2f size, sf::Vector2f position, BotonAccion tipo) {
+    Boton boton;
+    boton.shape.setSize(size);
+    boton.shape.setPosition(position);
+    boton.shape.setOrigin(size / 2.f);
+    boton.tipo = tipo;
+    return boton;
+}
+
+BotonTexto crearBotonConTexto(sf::Vector2f size, sf::Vector2f position, BotonAccion tipo, const sf::Font& fuente, const std::string& textoStr, unsigned int tam, sf::Color colorTexto) {
+    BotonTexto bt(fuente, textoStr, tam);
+    bt.boton = crearBoton(size, position, tipo);
+
+    // Crear texto
+    bt.texto.setFont(fuente);
+    bt.texto.setCharacterSize(tam);
+    bt.texto.setString(textoStr);
+    sf::FloatRect bounds = bt.texto.getLocalBounds();
+    bt.texto.setOrigin({bounds.position.x + bounds.size.x/2, bt.texto.getCharacterSize() * 0.75f});
+    bt.texto.setPosition(position); // centrado en el botón
+    bt.texto.setFillColor(colorTexto);
+
+    return bt;
+}
+
 
 BotonAccion manejarBoton(Boton& boton, sf::Vector2f mouse_position, BotonAccion accion)
 {
@@ -639,43 +601,19 @@ int ajustarAs(int total,int cartas[],int valorCartas[], int cantidad) {
     return tempTotal;
 }
 
-void reiniciarJuego(int randJugador[], int randMaquina[],int valorCartas[], sf::Sprite cardSprites[],sf::Vector2u tamanioVentana,int& totalJugador, int& totalMaquina)
+void reiniciarJuego(int randJugador[], int randMaquina[], int valorCartas[], std::vector<sf::Sprite>& sprites, sf::Vector2u tamanioVentana, int& totalJugador, int& totalMaquina)
 {
     // Generar nuevas cartas para jugador
-    int i = 0;
-    while (i < 5) {
-        int num = 1 + rand() % 52;
-        if (!randRepetido(randJugador, i, num)) {
-            randJugador[i] = num;
-            i++;
-        }
-    }
-
-    // Generar nuevas cartas para maquina
-    i = 0;
-    while (i < 5) {
-        int num = 1 + rand() % 52;
-        if (!randRepetido(randJugador, 5, num) && !randRepetido(randMaquina, i, num)) {
-            randMaquina[i] = num;
-            i++;
-        }
-    }
+    cartasRandom(randJugador, 5);
+    cartasRandom(randMaquina, 5, randJugador, 5);
 
     // Recalcular totales iniciales
     totalJugador = valorCartas[randJugador[0]] + valorCartas[randJugador[1]];
     totalMaquina = valorCartas[randMaquina[0]] + valorCartas[randMaquina[1]];
 
-    // Reposicionar cartas del jugador
-    cardSprites[randJugador[0]].setPosition({tamanioVentana.x * .45f, tamanioVentana.y * .60f});
-    cardSprites[randJugador[1]].setPosition({tamanioVentana.x * .58f, tamanioVentana.y * .60f});
-    cardSprites[randJugador[2]].setPosition({tamanioVentana.x * .66f, tamanioVentana.y * .60f});
-    cardSprites[randJugador[3]].setPosition({tamanioVentana.x * .79f, tamanioVentana.y * .60f});
-    cardSprites[randJugador[4]].setPosition({tamanioVentana.x * .92f, tamanioVentana.y * .60f});
-
-    // Reposicionar cartas de la maquina
-    cardSprites[randMaquina[0]].setPosition({tamanioVentana.x * .45f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[1]].setPosition({tamanioVentana.x * .58f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[2]].setPosition({tamanioVentana.x * .66f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[3]].setPosition({tamanioVentana.x * .79f, tamanioVentana.y * .15f});
-    cardSprites[randMaquina[4]].setPosition({tamanioVentana.x * .92f, tamanioVentana.y * .15f});
+    // Multiplicadores horizontales para 5 cartas
+    std::vector<float> posicionesX = {0.45f, 0.58f, 0.66f, 0.79f, 0.92f};
+    // Posicionar cartas del jugador y maquina
+    posicionarCartas(sprites, randJugador, 5, 0.60f, posicionesX, tamanioVentana);
+    posicionarCartas(sprites, randMaquina, 5, 0.15f, posicionesX, tamanioVentana);
 }
