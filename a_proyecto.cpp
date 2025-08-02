@@ -38,11 +38,40 @@ struct BotonTexto {
         : texto(fuente, cadena, tam) {}
 };
 
+struct Jugador {
+    int rand[5];
+    int total = 0;
+    int cont = 0;
+    bool mostrarCarta[3] = {false};
+
+};
+
+struct Maquina {
+    int rand[5];                     
+    int totalMaquina = 0;         
+    int tot = 0;          
+    bool mazoVisible = false;      
+    int cartasMostradas = 0; 
+    int contAnimacion = 2;        
+    sf::Clock relojCartas;       
+};
+
+struct JuegoEstado {
+    EstadoJuego estadoActual = MENU;
+    bool mostrarGanaste = false;
+    bool mostrarPerdiste = false;
+    bool mostrarEmpate = false;
+    bool mostrarResultado = false;
+    bool botonesHabilitados = true;
+    bool botonesFinalesHabilitados = false;
+    sf::Clock relojResultado;
+};
+
   //Fnciones del main para la logica 
   BotonAccion manejarBoton(Boton& boton, sf::Vector2f mouse_position, BotonAccion accion);
   bool randRepetido(int rand[], int cantidad, int valor);
   int ajustarAs(int total, int cartas[], int valorCartas[], int cantidad);
-  void reiniciarJuego(int randJugador[], int randMaquina[],int valorCartas[], std::vector<sf::Sprite>& sprites,sf::Vector2u tamanioVentana,int& totalJugador, int& totalMaquina);
+  void reiniciarJuego(Jugador &jug, Maquina &maqui, int valorCartas[], std::vector<sf::Sprite>& sprites, sf::Vector2u tamanioVentana);
   Imagen cargarImagen(const std::string& ruta, sf::Vector2f posicion, sf::Vector2f escala);
   void cartasRandom(int* destino, int cantidad, int* otros = nullptr, int otrosTam = 0);
   void posicionarCartas(std::vector<sf::Sprite>& sprites, const int* indices, int cantidad, float y, const std::vector<float>& xMultiplicadores, const sf::Vector2u& tamanioVentana);
@@ -53,11 +82,11 @@ struct BotonTexto {
 int main()
 {
     srand(time(0));
-    int randJugador[5];
-    int randMaquina[5];
     int valorCartas[53];
-    int totalJugador; 
-    int totalMaquina;
+    Jugador jug;
+    Maquina maqui;
+    JuegoEstado juego;
+
     // creamos la ventana
     sf::RenderWindow window(sf::VideoMode({900, 600}), "Black jack");
 
@@ -107,8 +136,8 @@ int main()
     }
     
     //ciclo para las cartas randmon del jugador 
-    cartasRandom(randJugador, 5);
-    cartasRandom(randMaquina, 5, randJugador, 5);
+    cartasRandom(jug.rand, 5);
+    cartasRandom(maqui.rand, 5, jug.rand, 5);
     
     // Cartas volteadas 
     cardSprites[0].setPosition({tamanioVentana.x * .10f, tamanioVentana.y * .50f});
@@ -117,8 +146,8 @@ int main()
     // Multiplicadores horizontales para 5 cartas
     std::vector<float> posicionesX = {0.45f, 0.58f, 0.66f, 0.79f, 0.92f};
     // Posicionar cartas del jugador y maquina
-    posicionarCartas(cardSprites, randJugador, 5, 0.60f, posicionesX, tamanioVentana);
-    posicionarCartas(cardSprites, randMaquina, 5, 0.15f, posicionesX, tamanioVentana);
+    posicionarCartas(cardSprites, jug.rand, 5, 0.60f, posicionesX, tamanioVentana);
+    posicionarCartas(cardSprites, maqui.rand, 5, 0.15f, posicionesX, tamanioVentana);
 
     //Botones con texto 
     BotonTexto botonIniciar = crearBotonConTexto({210.f, 65.f}, {tamanioVentana.x * .50f, tamanioVentana.y * .89f}, INICIAR, font, "INICIAR", 40, sf::Color::White);
@@ -136,24 +165,6 @@ int main()
     maquinaLleva.setCharacterSize(25);
     maquinaLleva.setPosition({tamanioVentana.x * .35f, tamanioVentana.y * .35f});
     maquinaLleva.setFillColor(sf::Color::White);
-
-    bool mostrarImagen3 = false;
-    bool mostrarImagen4 = false;
-    bool mostrarImagen5 = false;
-    bool mostrarGanaste = false;
-    bool mostrarPerdiste = false;
-    bool mostrarEmpate = false;
-    int cont = 0;
-    EstadoJuego estadoActual = MENU;
-    sf::Clock relojCartasMaquina;
-    bool mazoMaquina = false;
-    int cartasMaquinaMostradas = 0;
-    int contMaquinaAnimacion = 2; 
-    sf::Clock relojResultado;
-    bool mostrarResultado = false;
-    bool botonesHabilitados = true;
-    bool botHab = false;
-    int tot;
     
     // window loop
     while (window.isOpen())
@@ -174,18 +185,18 @@ int main()
         }
 
     //Mostramos el menu del juego 
-    if (estadoActual == MENU)
+    if (juego.estadoActual == MENU)
     {
         auto mouse_position = sf::Vector2f(sf::Mouse::getPosition(window));
         BotonAccion accion3 = manejarBoton(botonIniciar.boton, mouse_position, INICIAR);
 
         if (accion3 == INICIAR)
         {
-            estadoActual = PARTIDA;
-            totalJugador = valorCartas[randJugador[0]] + valorCartas[randJugador[1]];
-            totalMaquina = valorCartas[randMaquina[0]] + valorCartas[randMaquina[1]];
-            llevas.setString("Llevas: " + std::to_string(totalJugador) + " Puntos");
-            maquinaLleva.setString("La maquina lleva: " + std::to_string(valorCartas[randMaquina[0]]) + " Puntos");
+            juego.estadoActual = PARTIDA;
+            jug.total = valorCartas[jug.rand[0]] + valorCartas[jug.rand[1]];
+            maqui.totalMaquina = valorCartas[maqui.rand[0]] + valorCartas[maqui.rand[1]];
+            llevas.setString("Llevas: " + std::to_string(jug.total) + " Puntos");
+            maquinaLleva.setString("La maquina lleva: " + std::to_string(valorCartas[maqui.rand[0]]) + " Puntos");
             
         }
 
@@ -196,7 +207,7 @@ int main()
         window.display();
 
     }
-    else if (estadoActual == PARTIDA)
+    else if (juego.estadoActual == PARTIDA)
     {
 
         // posicion del mouse 
@@ -207,11 +218,11 @@ int main()
          BotonAccion salir = NINGUNA;
          BotonAccion reiniciar = NINGUNA;
 
-        if (botonesHabilitados) {
+        if (juego.botonesHabilitados) {
             accion1 = manejarBoton(botonPedir.boton, mouse_position, PEDIR_CARTA);
             accion2 = manejarBoton(botonPlantarse.boton, mouse_position, PLANTARSE);
         }
-        if (botHab) {
+        if (juego.botonesFinalesHabilitados) {
             salir = manejarBoton(terminarJuego.boton, mouse_position, SALIR);
             reiniciar = manejarBoton(volveraJugar.boton, mouse_position, REINICIAR);
         }
@@ -222,130 +233,129 @@ int main()
             window.close();
         }
         if (reiniciar == REINICIAR){
-            estadoActual = PARTIDA;
-            mostrarGanaste = mostrarPerdiste = mostrarEmpate = false;
-            mostrarImagen3 = mostrarImagen4 = mostrarImagen5 = false;
-            mostrarResultado = false;
-            botonesHabilitados = true;
-            botHab = false;
-            mazoMaquina = false;
-            cont = 0;
-            cartasMaquinaMostradas = 0;
-            contMaquinaAnimacion = 2;
-            relojCartasMaquina.restart();
-            relojResultado.restart();
+            juego.estadoActual = PARTIDA;
+            juego.mostrarGanaste = juego.mostrarPerdiste = juego.mostrarEmpate = false;
+            jug.mostrarCarta[0] = jug.mostrarCarta[1] = jug.mostrarCarta[2] = false;
+            juego.mostrarResultado = false;
+            juego.botonesHabilitados = true;
+            juego.botonesFinalesHabilitados = false;
+            maqui.mazoVisible = false;
+            jug.cont = 0;
+            maqui.cartasMostradas = 0;
+            maqui.contAnimacion = 2;
+            maqui.relojCartas.restart();
+            juego.relojResultado.restart();
             
-            reiniciarJuego(randJugador, randMaquina, valorCartas, cardSprites, tamanioVentana, totalJugador, totalMaquina);
-            llevas.setString("Llevas: " + std::to_string(totalJugador) + " Puntos");
-            maquinaLleva.setString("La maquina lleva: " + std::to_string(valorCartas[randMaquina[0]]) + " Puntos");
+            reiniciarJuego(jug, maqui, valorCartas, cardSprites, tamanioVentana);
+            llevas.setString("Llevas: " + std::to_string(jug.total) + " Puntos");
+            maquinaLleva.setString("La maquina lleva: " + std::to_string(valorCartas[maqui.rand[0]]) + " Puntos");
             
         }
-        
         
         //Condicional del jugador 
         if (accion1 == PEDIR_CARTA)
         {
-            if (cont < 3)
+            if (jug.cont < 3)
             {
-                cardSprites[randJugador[0]].move({tamanioVentana.x * -.05f, 0.f});
-                cardSprites[randJugador[1]].move({tamanioVentana.x * -.05f, 0.f});
-              if (mostrarImagen3==true )
+                cardSprites[jug.rand[0]].move({tamanioVentana.x * -.05f, 0.f});
+                cardSprites[jug.rand[1]].move({tamanioVentana.x * -.05f, 0.f});
+              if (jug.mostrarCarta[0] == true )
               {
-                  cardSprites[randJugador[2]].move({tamanioVentana.x * -.05f, 0.f});
-                  mostrarImagen4 = true;
+                  cardSprites[jug.rand[2]].move({tamanioVentana.x * -.05f, 0.f});
+                  jug.mostrarCarta[1] = true;
               } 
-              if (mostrarImagen4 == true ){
-                  cardSprites[randJugador[3]].move({tamanioVentana.x * -.05f, 0.f});
-                  mostrarImagen5 = true;
+              if (jug.mostrarCarta[1] == true ){
+                  cardSprites[jug.rand[3]].move({tamanioVentana.x * -.05f, 0.f});
+                  jug.mostrarCarta[2] = true;
               }
-              if (mostrarImagen5 == true ){
-                 cardSprites[randJugador[4]].move({tamanioVentana.x * -.05f, 0.f});
+              if (jug.mostrarCarta[2] == true ){
+                 cardSprites[jug.rand[4]].move({tamanioVentana.x * -.05f, 0.f});
               }
 
-              mostrarImagen3 = true;
+              jug.mostrarCarta[0] = true;
              
             // Aqui desarrolamos la logica del juego para saber si el jugador gano o perdio
-            int cartasEnJuego = 2 + cont + 1;
-            totalJugador = ajustarAs(0, randJugador, valorCartas, cartasEnJuego);
-            llevas.setString("Llevas: " + std::to_string(totalJugador) + " Puntos");
+            int cartasEnJuego = 2 + jug.cont + 1;
+            jug.total = ajustarAs(0, jug.rand, valorCartas, cartasEnJuego);
+            llevas.setString("Llevas: " + std::to_string(jug.total) + " Puntos");
 
-            if (totalJugador >= 21) 
+            if (jug.total >= 21) 
             {
-               relojCartasMaquina.restart(); 
-               cartasMaquinaMostradas = 2;
-               contMaquinaAnimacion = 2; 
-               mazoMaquina = true;
-               tot = valorCartas[randMaquina[0]] + valorCartas[randMaquina[1]];
-               totalMaquina = ajustarAs(totalMaquina, randMaquina, valorCartas, cartasMaquinaMostradas);
+               maqui.relojCartas.restart(); 
+               maqui.cartasMostradas = 2;
+               maqui.contAnimacion = 2; 
+               maqui.mazoVisible = true;
+               maqui.tot = valorCartas[maqui.rand[0]] + valorCartas[maqui.rand[1]];
+               maqui.totalMaquina = ajustarAs(maqui.totalMaquina, maqui.rand, valorCartas, maqui.cartasMostradas);
 
                //Logica de la maquina para saber quien gana 
-                while (totalMaquina < 17 && cartasMaquinaMostradas < 5) {
-                    totalMaquina += valorCartas[randMaquina[cartasMaquinaMostradas]];
-                    cartasMaquinaMostradas++;
-                    totalMaquina = ajustarAs(totalMaquina, randMaquina, valorCartas, cartasMaquinaMostradas);
+                while (maqui.totalMaquina < 17 && maqui.cartasMostradas < 5) {
+                    maqui.totalMaquina += valorCartas[maqui.rand[maqui.cartasMostradas]];
+                    maqui.cartasMostradas++;
+                    maqui.totalMaquina = ajustarAs(maqui.totalMaquina, maqui.rand, valorCartas, maqui.cartasMostradas);
                 }
 
-                maquinaLleva.setString("La maquina lleva: " + std::to_string(tot) + " Puntos");
+                maquinaLleva.setString("La maquina lleva: " + std::to_string(maqui.tot) + " Puntos");
 
                 // Verificar ganador
-                if (totalJugador == 21 && (totalMaquina > 21 || totalMaquina < totalJugador)){
-                    mostrarGanaste = true;
-                }else if (totalMaquina <= 21){
-                    mostrarPerdiste = true;
-                }else if (totalMaquina > 21){
-                    mostrarEmpate = true;
+                if (jug.total == 21 && (maqui.totalMaquina > 21 || maqui.totalMaquina < jug.total)){
+                    juego.mostrarGanaste = true;
+                }else if (maqui.totalMaquina <= 21){
+                    juego.mostrarPerdiste = true;
+                }else if (maqui.totalMaquina > 21){
+                    juego.mostrarEmpate = true;
                 }     
 
-              botonesHabilitados = false;
+              juego.botonesHabilitados = false;
             
             }
-            if (cont == 2 && totalJugador <= 21) {
-                relojResultado.restart();
-                mostrarResultado = true;
-                mostrarGanaste = true;
-                botonesHabilitados = false;
+            if (jug.cont == 2 && jug.total <= 21) {
+                juego.relojResultado.restart();
+                juego.mostrarResultado = true;
+                juego.mostrarGanaste = true;
+                juego.botonesHabilitados = false;
             }
 
-              cont ++;
+              jug.cont ++;
             }
 
 
         }        
         else if (accion2 == PLANTARSE)
         {
-               relojCartasMaquina.restart(); 
-               cartasMaquinaMostradas = 2;
-               contMaquinaAnimacion = 2; 
-               mazoMaquina = true;
-               botonesHabilitados = false;
-               tot = valorCartas[randMaquina[0]] + valorCartas[randMaquina[1]];
-               totalMaquina = ajustarAs(totalMaquina, randMaquina, valorCartas, cartasMaquinaMostradas);
+               maqui.relojCartas.restart(); 
+               maqui.cartasMostradas = 2;
+               maqui.contAnimacion = 2; 
+               maqui.mazoVisible = true;
+               juego.botonesHabilitados = false;
+               maqui.tot = valorCartas[maqui.rand[0]] + valorCartas[maqui.rand[1]];
+               maqui.totalMaquina = ajustarAs(maqui.totalMaquina, maqui.rand, valorCartas, maqui.cartasMostradas);
 
                //Logica de la maquina para saber quien gana 
-                while (totalMaquina < 17 && cartasMaquinaMostradas < 5) {
-                    totalMaquina += valorCartas[randMaquina[cartasMaquinaMostradas]];
-                    cartasMaquinaMostradas++;
-                    totalMaquina = ajustarAs(totalMaquina, randMaquina, valorCartas, cartasMaquinaMostradas);
+                while (maqui.totalMaquina < 17 && maqui.cartasMostradas < 5) {
+                    maqui.totalMaquina += valorCartas[maqui.rand[maqui.cartasMostradas]];
+                    maqui.cartasMostradas++;
+                    maqui.totalMaquina = ajustarAs(maqui.totalMaquina, maqui.rand, valorCartas, maqui.cartasMostradas);
                 }
                             
-                maquinaLleva.setString("La maquina lleva: " + std::to_string(tot) + " Puntos");
+                maquinaLleva.setString("La maquina lleva: " + std::to_string(maqui.tot) + " Puntos");
 
 
                 // Verificar ganador
-                if (totalMaquina > 21 && totalJugador > 21){
-                    mostrarEmpate = true;
-                }else if (totalMaquina > 21) {
-                    mostrarGanaste = true;
-                } else if (totalMaquina >= totalJugador) {
-                    mostrarPerdiste = true;
-                } else if (totalMaquina < totalJugador){     
-                    mostrarGanaste = true;
+                if (maqui.totalMaquina > 21 && jug.total > 21){
+                    juego.mostrarEmpate = true;
+                }else if (maqui.totalMaquina > 21) {
+                    juego.mostrarGanaste = true;
+                } else if (maqui.totalMaquina >= jug.total) {
+                    juego.mostrarPerdiste = true;
+                } else if (maqui.totalMaquina < jug.total){     
+                    juego.mostrarGanaste = true;
                 }           
 
         }
 
         window.clear(sf::Color(64, 64, 64));
-        if (botonesHabilitados){
+        if (juego.botonesHabilitados){
           window.draw(botonPedir.boton.shape);
           window.draw(botonPedir.texto);
           window.draw(botonPlantarse.boton.shape);
@@ -354,80 +364,80 @@ int main()
 
         // Llamamos a las cartas para ser dibujadas 
         window.draw(cardSprites[0]);
-        window.draw(cardSprites[randJugador[0]]);
-        window.draw(cardSprites[randJugador[1]]);
-        if (mostrarImagen3){
-            window.draw(cardSprites[randJugador[2]]);
+        window.draw(cardSprites[jug.rand[0]]);
+        window.draw(cardSprites[jug.rand[1]]);
+        if (jug.mostrarCarta[0]){
+            window.draw(cardSprites[jug.rand[2]]);
         }
-        if (mostrarImagen4){
-            window.draw(cardSprites[randJugador[3]]);
+        if (jug.mostrarCarta[1]){
+            window.draw(cardSprites[jug.rand[3]]);
         }
-        if (cont == 3){
-            window.draw(cardSprites[randJugador[4]]);
+        if (jug.cont == 3){
+            window.draw(cardSprites[jug.rand[4]]);
         }
 
-        if (!mazoMaquina) {
-            window.draw(cardSprites[randMaquina[0]]);
+        if (!maqui.mazoVisible) {
+            window.draw(cardSprites[maqui.rand[0]]);
             window.draw(cardSprites[53]);
         }
         
         //logica del juego de la maquina
-        if (mazoMaquina) {
-            sf::Time tiempo = relojCartasMaquina.getElapsedTime();
+        if (maqui.mazoVisible) {
+            sf::Time tiempo = maqui.relojCartas.getElapsedTime();
 
-            if (contMaquinaAnimacion < cartasMaquinaMostradas && tiempo.asSeconds() > 1.5f * contMaquinaAnimacion) {
-                int index = contMaquinaAnimacion;
+            if (maqui.contAnimacion < maqui.cartasMostradas && tiempo.asSeconds() > 1.5f * maqui.contAnimacion) {
+                int index = maqui.contAnimacion;
                 if (index == 2){
-                    cardSprites[randMaquina[0]].move({tamanioVentana.x * -0.05f, 0.f});
-                    cardSprites[randMaquina[1]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[maqui.rand[0]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[maqui.rand[1]].move({tamanioVentana.x * -0.05f, 0.f});
                 }
                 if (index > 2) {
-                    cardSprites[randMaquina[0]].move({tamanioVentana.x * -0.05f, 0.f});
-                    cardSprites[randMaquina[1]].move({tamanioVentana.x * -0.05f, 0.f});
-                    cardSprites[randMaquina[2]].move({tamanioVentana.x * -0.05f, 0.f});
-                    cardSprites[randMaquina[3]].move({tamanioVentana.x * -0.05f, 0.f});
-                    cardSprites[randMaquina[4]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[maqui.rand[0]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[maqui.rand[1]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[maqui.rand[2]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[maqui.rand[3]].move({tamanioVentana.x * -0.05f, 0.f});
+                    cardSprites[maqui.rand[4]].move({tamanioVentana.x * -0.05f, 0.f});
                 }
-                tot = ajustarAs(0, randMaquina, valorCartas, contMaquinaAnimacion + 1);
-                maquinaLleva.setString("La maquina lleva: " + std::to_string(tot) + " Puntos");
+                maqui.tot = ajustarAs(0, maqui.rand, valorCartas, maqui.contAnimacion + 1);
+                maquinaLleva.setString("La maquina lleva: " + std::to_string(maqui.tot) + " Puntos");
                
-                contMaquinaAnimacion++;
+                maqui.contAnimacion++;
 
-                if (contMaquinaAnimacion == cartasMaquinaMostradas) {
-                    relojResultado.restart();
-                    mostrarResultado = true;
+                if (maqui.contAnimacion == maqui.cartasMostradas) {
+                    juego.relojResultado.restart();
+                    juego.mostrarResultado = true;
                 }
-                }else if (contMaquinaAnimacion == cartasMaquinaMostradas && !mostrarResultado) {
-                  relojResultado.restart();
-                  mostrarResultado = true;
+                }else if (maqui.contAnimacion == maqui.cartasMostradas && !juego.mostrarResultado) {
+                  juego.relojResultado.restart();
+                  juego.mostrarResultado = true;
                 }
         
-             for (int i = 0; i < contMaquinaAnimacion; ++i) {
-                window.draw(cardSprites[randMaquina[i]]);
+             for (int i = 0; i < maqui.contAnimacion; ++i) {
+                window.draw(cardSprites[maqui.rand[i]]);
             }
         }
 
-        if (mostrarResultado && relojResultado.getElapsedTime().asSeconds() > 5.0f) {
-            if (mostrarGanaste){
+        if (juego.mostrarResultado && juego.relojResultado.getElapsedTime().asSeconds() > 5.0f) {
+            if (juego.mostrarGanaste){
                 window.draw(ganaste.sprite);
             }
-            if (mostrarPerdiste){
+            if (juego.mostrarPerdiste){
                 window.draw(perdiste.sprite);
             }
-            if (mostrarEmpate){
+            if (juego.mostrarEmpate){
                 window.draw(empate.sprite);
             }
-            botHab = true;
+            juego.botonesFinalesHabilitados = true;
         }
 
-        if (botHab){
+        if (juego.botonesFinalesHabilitados){
             window.draw(terminarJuego.boton.shape);
             window.draw(terminarJuego.texto);
             window.draw(volveraJugar.boton.shape);
             window.draw(volveraJugar.texto);
           }
 
-        if (estadoActual == PARTIDA && !botHab ){
+        if (juego.estadoActual == PARTIDA && !juego.botonesFinalesHabilitados ){
             window.draw(llevas);
             window.draw(maquinaLleva);
         }
@@ -601,19 +611,19 @@ int ajustarAs(int total,int cartas[],int valorCartas[], int cantidad) {
     return tempTotal;
 }
 
-void reiniciarJuego(int randJugador[], int randMaquina[], int valorCartas[], std::vector<sf::Sprite>& sprites, sf::Vector2u tamanioVentana, int& totalJugador, int& totalMaquina)
+void reiniciarJuego(Jugador &jug, Maquina &maqui, int valorCartas[], std::vector<sf::Sprite>& sprites, sf::Vector2u tamanioVentana)
 {
     // Generar nuevas cartas para jugador
-    cartasRandom(randJugador, 5);
-    cartasRandom(randMaquina, 5, randJugador, 5);
+    cartasRandom(jug.rand, 5);
+    cartasRandom(maqui.rand, 5, jug.rand, 5);
 
     // Recalcular totales iniciales
-    totalJugador = valorCartas[randJugador[0]] + valorCartas[randJugador[1]];
-    totalMaquina = valorCartas[randMaquina[0]] + valorCartas[randMaquina[1]];
+    jug.total = valorCartas[jug.rand[0]] + valorCartas[jug.rand[1]];
+    maqui.totalMaquina = valorCartas[maqui.rand[0]] + valorCartas[maqui.rand[1]];
 
     // Multiplicadores horizontales para 5 cartas
     std::vector<float> posicionesX = {0.45f, 0.58f, 0.66f, 0.79f, 0.92f};
     // Posicionar cartas del jugador y maquina
-    posicionarCartas(sprites, randJugador, 5, 0.60f, posicionesX, tamanioVentana);
-    posicionarCartas(sprites, randMaquina, 5, 0.15f, posicionesX, tamanioVentana);
+    posicionarCartas(sprites, jug.rand, 5, 0.60f, posicionesX, tamanioVentana);
+    posicionarCartas(sprites, maqui.rand, 5, 0.15f, posicionesX, tamanioVentana);
 }
